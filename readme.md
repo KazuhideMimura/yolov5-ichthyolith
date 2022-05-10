@@ -21,3 +21,6 @@
 
 ## log
 2022/5/10: released
+
+## todo
+- update val.py for 2nd classification model
