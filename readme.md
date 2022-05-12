@@ -1,5 +1,7 @@
 **yolov5-ichthyolith** is an application of yolov5 for detecting microfossil fish teeth called ichthyolith.
 
+code originality: [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
+
 ## What is new?
 (in preparation)
 
@@ -18,6 +20,8 @@
 
 ## Reference
 [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
+
+also see: [ultralytics/yolov5/issues/7429](https://github.com/ultralytics/yolov5/issues/7429)
 
 ## log
 2022/5/10: released
