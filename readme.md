@@ -50,4 +50,4 @@ also see: [ultralytics/yolov5/issues/7429](https://github.com/ultralytics/yolov5
 2022/5/10: released
 
 ## todo
-- update val.py for 2nd classification model
+- find some images where FPs can be reduced using 2nd models
