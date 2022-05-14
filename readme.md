@@ -27,13 +27,13 @@ The code is also designed to try "fine- and coarse- grain labeling" reported by 
 <img src="/images_for_github/1_first.jpg" width="500">
 <br>
 
-#### detect both 1st and 2nd model
+#### detect using both 1st and 2nd model
 `python detect.py --source path/to/detection/directory --weights runs/train/20220510_model1/weights/best.pt --second second_classifier/20220510_model2/weights/best.pt --img 800`
 <br>
 <img src="/images_for_github/2_second.jpg" width="500">
 <br>
 
-#### detect both 1st and 2nd model (convert to coarse labels)
+#### detect using both 1st and 2nd model (convert to coarse labels)
 `python detect.py --source path/to/detection/directory --weights runs/train/20220510_model1/weights/best.pt --second second_classifier/20220510_model2/weights/best.pt --return-coarse --img 800`
 <br>
 <img src="/images_for_github/3_re-coarsed.jpg" width="500">
