@@ -10,11 +10,14 @@ parser.add_argument('--model', type=str, help='model name')
 parser.add_argument('--length_threshold', type=float, default=0.0, help='minimum length to save to excel')
 parser.add_argument('--nocrop', action='store_true', help='do not save cropped images')
 parser.add_argument('--second', type=str, default=None, help='path/to/2nd/classifier')
+parser.add_argument('--coarsed', action='store_true', help='True if the results were returned to coarse labels')
 opt = parser.parse_args()
 
 site_name = opt.site
-data_yaml_path = './data/ichthyolith_detection.yaml'
 crop = not opt.nocrop
+# todo: change parameter name
+# data_yaml_path --> class file path
+data_yaml_path = './data/ichthyolith_detection.yaml'
 
 if __name__ == '__main__':
     if opt.second is None:
@@ -22,6 +25,8 @@ if __name__ == '__main__':
     else:
         second_model = os.path.basename(os.path.dirname(os.path.dirname(opt.second)))
         model_name = f"{opt.model}__{second_model}"
+        if not opt.coarsed:
+            data_yaml_path = f"./second_classifier/{second_model}/class_names.txt"
     print(model_name)
 
     if opt.samples is None:

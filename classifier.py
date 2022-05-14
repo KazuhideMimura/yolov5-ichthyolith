@@ -2,13 +2,7 @@
 """
 Train a YOLOv5 classifier model on a classification dataset
 Usage - train:
-    $ python path/to/classifier.py --model yolov5s --data mnist --epochs 5 --img 128
-Usage - inference:
-    from classifier import *
-    model = torch.load('path/to/best.pt', map_location=torch.device('cpu'))['model'].float()
-    files = Path('../datasets/mnist/test/7').glob('*.png')  # images from dir
-    for f in list(files)[:10]:  # first 10 images
-        classify(model, size=128, file=f)
+    $ python classifier.py --model efficientnet_b0 --data path/to/dataset --project second_classifier --name 20220510_model2 --epochs 15 --img 224
 """
 
 import argparse
@@ -60,11 +54,11 @@ def train():
         download(url, dir=data_dir.parent)
 
     # Transforms
-    trainform = T.Compose([T.RandomGrayscale(p=0.01),
+    trainform = T.Compose([# T.RandomGrayscale(p=0.01),
                            T.RandomHorizontalFlip(p=0.5),
                            T.RandomVerticalFlip(p=0.5),
-                           T.RandomAffine(degrees=1, translate=(.2, .2), scale=(1 / 1.5, 1.5),
-                                          shear=(-1, 1, -1, 1), fill=(114, 114, 114)),
+                           # T.RandomAffine(degrees=1, translate=(.2, .2), scale=(1 / 1.5, 1.5),
+                           #                shear=(-1, 1, -1, 1), fill=(114, 114, 114)),
                            # T.Resize([imgsz, imgsz]),  # very slow
                            T.ToTensor(),
                            T.Normalize((0.5, 0.5, 0.5), (0.25, 0.25, 0.25))])  # PILImage from [0, 1] to [-1, 1]
@@ -73,12 +67,12 @@ def train():
     # Dataloaders
     trainset = torchvision.datasets.ImageFolder(root=data_dir / 'train', transform=trainform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=bs, shuffle=True, num_workers=nw)
-    testset = torchvision.datasets.ImageFolder(root=data_dir / 'test', transform=testform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=bs, shuffle=True, num_workers=nw)
+    valset = torchvision.datasets.ImageFolder(root=data_dir / 'val', transform=testform)
+    valloader = torch.utils.data.DataLoader(valset, batch_size=bs, shuffle=True, num_workers=nw)
     names = trainset.classes
     nc = len(names)
     print(f'Training {opt.model} on {data} dataset with {nc} classes...')
-
+    
     # save class names in txt file
     with open(save_dir / 'class_names.txt', mode = 'w') as f:
         f.write(', '.join(names))
@@ -132,7 +126,7 @@ def train():
     criterion = nn.CrossEntropyLoss()  # loss function
     best_fitness = 0.0
     # scaler = amp.GradScaler(enabled=cuda)
-    print(f'Image sizes {imgsz} train, {imgsz} test\n'
+    print(f'Image sizes {imgsz} train, {imgsz} val\n'
           f'Using {nw} dataloader workers\n'
           f"Logging results to {colorstr('bold', save_dir)}\n"
           f'Starting training for {epochs} epochs...\n\n'
@@ -160,9 +154,9 @@ def train():
             mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
             pbar.desc = f"{'%s/%s' % (epoch + 1, epochs):10s}{mem:10s}{mloss / (i + 1):<12.3g}"
 
-            # Test
+            # Validation
             if i == len(pbar) - 1:
-                fitness = test(model, testloader, names, criterion, pbar=pbar)  # test
+                fitness = test(model, valloader, names, criterion, pbar=pbar)  # validation
 
         # Scheduler
         scheduler.step()
@@ -190,14 +184,16 @@ def train():
     if final_epoch:
         print(f'Training complete. Results saved to {save_dir}.')
 
-        # Show predictions
-        images, labels = iter(testloader).next()
-        images = resize(images.to(device))
-        pred = torch.max(model(images), 1)[1]
-        imshow(denormalize(images), labels, pred, names, verbose=True, f=save_dir / 'test_images.jpg')
+        # # Show predictions
+        # images, labels = iter(valloader).next()
+        # images = resize(images.to(device))
+        # pred = torch.max(model(images), 1)[1]
+        # imshow(denormalize(images), labels, pred, names, verbose=True, f=save_dir / 'validation_images.jpg')
+
+    return best, names  
 
 
-def test(model, dataloader, names, criterion=None, verbose=False, pbar=None):
+def test(model, dataloader, names, criterion=None, verbose=False, pbar=None, conf_mat = False):
     model.eval()
     pred, targets, loss = [], [], 0
     with torch.no_grad():
@@ -217,11 +213,17 @@ def test(model, dataloader, names, criterion=None, verbose=False, pbar=None):
 
     accuracy = correct.mean().item()
     if verbose:  # all classes
-        print(f"{'class':10s}{'number':10s}{'accuracy':10s}")
-        print(f"{'all':10s}{correct.shape[0]:10s}{accuracy:10.5g}")
+        # slight modification by KM for text formatting
+        print(f"{'class':25}{'number':>10}{'accuracy':>10}")
+        print(f"{'all':25}{correct.shape[0]:10}{accuracy:10.5g}")
         for i, c in enumerate(names):
             t = correct[targets == i]
-            print(f"{c:10s}{t.shape[0]:10s}{t.mean().item():10.5g}")
+            print(f"{c:25}{t.shape[0]:10}{t.mean().item():10.5g}")
+        print()
+
+    # todo: generate confusion matrix
+    if conf_mat:
+        pass
 
     return accuracy
 
@@ -313,4 +315,18 @@ if __name__ == '__main__':
     resize = torch.nn.Upsample(size=(opt.img_size, opt.img_size), mode='bilinear', align_corners=False)  # image resize
 
     # Train
-    train()
+    best, names = train()
+
+    # Test (if available)
+    test_dir = FILE.parents[1] / 'datasets' / opt.data / 'test'
+    if os.path.isdir(test_dir):
+        testform = T.Compose([T.ToTensor(),
+                              T.Normalize((0.5, 0.5, 0.5), (0.25, 0.25, 0.25))])  # PILImage from [0, 1] to [-1, 1])
+        testset = torchvision.datasets.ImageFolder(root=test_dir, transform=testform)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=opt.batch_size, shuffle=True, num_workers=min(NUM_THREADS, opt.workers))
+
+        print(f"test by {best}")
+        best_model = torch.load(best, map_location=torch.device('cpu'))['model'].float()
+        best_model.to("cuda:0")
+        test(best_model, testloader, names, verbose=True)
+        
