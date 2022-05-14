@@ -43,7 +43,7 @@ from models.common import DetectMultiBackend
 from utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
 from utils.general import (LOGGER, check_file, check_img_size, check_imshow, check_requirements, colorstr,
                            increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh, 
-                           apply_classifier, apply_custom_classifier, load_second_classname)
+                           apply_classifier, apply_custom_classifier, load_second_classname, load_reclass_dict)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 
@@ -75,8 +75,9 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference 
-        # custom
-        second=None # use second classifier model
+        # parameters for 2nd-classifier
+        second=None,  # use second classifier model
+        return_coarse=False # return to coarse class
         ):
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
@@ -95,15 +96,24 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     imgsz = check_img_size(imgsz, s=stride)  # check image size
-
+    
     # load second model
+    reclass_dict = None
     if second is not None:
         reclassify = True
         second_model_path = os.path.join(ROOT, second)
         second_model = torch.load(second_model_path, map_location=torch.device('cpu'))['model'].float()
         second_model.to("cuda:0")
-        names2 = load_second_classname(second_model_path)
-        print('names2: ', names2)
+
+        if return_coarse:
+            names2 = names
+            # todo: load from text (or json) file
+            reclass_dict = load_reclass_dict(second_model_path)
+            print(reclass_dict)
+            # reclass_dict = {0:[13, 14, 15, 16, 17], 1: [0, 1, 2], 2: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+        else:
+            names2 = load_second_classname(second_model_path)
+            print('names2: ', names2)
     else:
         reclassify = False
         names2 = names
@@ -148,7 +158,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=agnostic_nms, max_det=max_det)
             # Second-stage classifier
             # todo: imgsize --> input
-            pred = apply_custom_classifier(pred, second_model, im, im0s, 224, classes)
+            pred = apply_custom_classifier(pred, second_model, im, im0s, 224, classes, reclass_dict = reclass_dict)
+
         else:
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic=agnostic_nms, max_det=max_det)
         dt[2] += time_sync() - t3
@@ -260,6 +271,7 @@ def parse_opt():
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     parser.add_argument('--second', type=str, default=None, help='path/to/2nd/classifier')
+    parser.add_argument('--return-coarse', action='store_true', help='save cropped prediction boxes')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(FILE.stem, opt)
