@@ -14,6 +14,30 @@ For this purpose, detect.py and classifier.py were modified so that second model
 
 The code is also designed to try "fine- and coarse- grain labeling" reported by [Chen et al. (2018)](https://ieeexplore.ieee.org/abstract/document/8637482).
 
+<details><summary>
+日本語
+</summary><div>
+
+物体検出モデルで検出したものを，画像分類モデルで再分類することは，False Positive が多い検出問題では特に有効だと考えられています．
+
+物体検出モデルとして現在広く用いられている YOLO-v5 にも，EfficientNet 等の画像分類モデルを用いて再分類する機能が実装されていましたが，
+「物体検出モデルのクラス数」と「画像分類モデルのクラス数」が同じである必要がありました．
+  
+本プロジェクトでは，画像分類モデルのクラス数を物体検出モデルのクラス数と無関係に決定できるようにプログラムコードの変更を行いました．
+これは，以下の２点でメリットがあると考えられます．
+  
+(1) 学習の手間の削減
+画像分類モデルの学習や教師データの準備は，物体検出モデルのそれらと比較して容易です．
+このため，「物体検出モデルには輪郭の抽出のみを学習させ，クラスの判定は画像分類モデルで訓練する」といった活用方法が考えられます．
+  
+(2) 分類精度の向上
+画像分類モデルは，ラフなラベル（例えば「動物」）で学習するよりも詳細なラベル（例えば「犬，猫，…」）で学習する方が高精度であるということが，
+[Chen et al. (2018)](https://ieeexplore.ieee.org/abstract/document/8637482) で報告されています．
+
+本プロジェクトでも，このことを試すことができるように，「詳細に分類したラベルからラフなラベルに戻す」機能を実装しています
+  
+</div></details>
+
 ## Command and detection examples
 #### train detection (1st) model
 `python train.py --img 800 --batch 16 --epoch 80 --data ichthyolith_detection.yaml --weights yolov5l.pt --name 20220510_model1`
@@ -45,6 +69,8 @@ The code is also designed to try "fine- and coarse- grain labeling" reported by 
 also see: [ultralytics/yolov5/issues/7429](https://github.com/ultralytics/yolov5/issues/7429)
 
 ## log
+2022/6/4: Added some program codes that were missing in utils/~.
+
 2022/5/14: enabled to return to coarse labels & added some detection images to readme.md
 
 2022/5/10: released
