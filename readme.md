@@ -2,6 +2,8 @@
 
 code originality: [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
 
+![Visitors](https://visitor-badge.glitch.me/badge?page_id=KazuhideMimura/yolov5-ichthyolith&left_color=gray&right_color=blue)
+
 ## What is new?
 Combining detection and classification model is useful when many FPs are contained in images.
 
