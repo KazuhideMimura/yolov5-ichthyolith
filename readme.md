@@ -72,6 +72,8 @@ The code is also designed to try "fine- and coarse- grain labeling" reported by 
 also see: [ultralytics/yolov5/issues/7429](https://github.com/ultralytics/yolov5/issues/7429)
 
 ## log
+2022/6/7: started counting visitors
+
 2022/6/4: Added some program codes that were missing in utils/~.
 
 2022/5/14: enabled to return to coarse labels & added some detection images to readme.md
