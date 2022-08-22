@@ -5,6 +5,17 @@
 
 code originality: [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
 
+## Citation
+```
+@software{yolov5-ichthyolith,
+  author = {Kazuhide Mimura},
+  month = {5},
+  title = {{Automated detection of microfossils by combining YOLO-v5 and EfficientNet}},
+  url = {https://github.com/KazuhideMimura/yolov5-ichthyolith/},
+  year = {2022}
+}
+```
+
 ## What is new?
 Combining detection and classification model is useful when many FPs are contained in images.
 
